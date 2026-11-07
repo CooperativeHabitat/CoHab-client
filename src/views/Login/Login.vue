@@ -1,6 +1,6 @@
 <template>
-  <main class="d-flex align-items-center justify-content-center min-vh-100 p-3">
-    <div class="card shadow" style="max-width: 28rem; width: 100%;">
+  <main class="flex-grow-1 d-flex p-3 overflow-auto">
+    <div class="card shadow m-auto" style="max-width: 28rem; width: 100%;">
       <div class="card-header text-center">
         <h2>С возвращением!</h2>
         <p class="text-muted mb-0">Войдите в аккаунт</p>

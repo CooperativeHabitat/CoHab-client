@@ -1,5 +1,5 @@
 <template>
-  <div class="d-flex flex-column vh-100">
+  <div class="d-flex flex-column overflow-hidden">
     <EditTaskComponent v-if="showEditTaskComponent" @close="handleCloseTaskForm" />
     <CreateInvitationComponent v-if="showCreateInvitationComponent" @close-invitation="handleCloseInvitationForm" />
     

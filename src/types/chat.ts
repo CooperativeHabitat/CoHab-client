@@ -65,8 +65,9 @@ export interface ViewMessageRequest {
 }
 
 export interface Reaction {
-  emoji?: string
   memberId?: string
+  reaction?: string
+  reactedAt?: string
 }
 
 export interface MessageRead {

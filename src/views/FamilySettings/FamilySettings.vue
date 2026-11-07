@@ -1,6 +1,6 @@
 <template>
-  <div class="d-flex flex-column vh-100">
-    
+  <div class="d-flex flex-column overflow-hidden">
+
     <main class="flex-grow-1 d-flex flex-column p-4 overflow-hidden">
       <div class="card shadow-sm flex-grow-1 d-flex flex-column overflow-hidden">
         <div class="card-header bg-body-tertiary border-bottom">

@@ -1,7 +1,7 @@
 <template>
-  <Header />
-  <main class="d-flex align-items-center justify-content-center min-vh-100 p-4">
-    <div class="card shadow text-center p-5" style="max-width: 40rem; width: 100%;">
+  <div class="d-flex flex-column overflow-hidden">
+    <main class="flex-grow-1 d-flex p-4 overflow-auto">
+      <div class="card shadow text-center p-5 m-auto" style="max-width: 40rem; width: 100%;">
       <div class="d-inline-flex p-3 bg-primary bg-opacity-10 rounded-circle mb-4 text-primary">
         <LockIcon :size="32" />
       </div>
@@ -14,11 +14,11 @@
         Как связаться с администратором?
         <ArrowRightIcon :size="16" />
       </a>
-    </div>
-  </main>
+      </div>
+    </main>
+  </div>
 </template>
 
 <script setup lang="ts">
-import Header from "@/views/header/Header.vue"
 import { LockIcon, ArrowRightIcon } from 'lucide-vue-next'
 </script>

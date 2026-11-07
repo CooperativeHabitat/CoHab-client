@@ -106,6 +106,9 @@ const useFamilyStore = defineStore('family', () => {
         if (!messages.value[familyId]) {
             messages.value[familyId] = []
         }
+        if (messages.value[familyId].some(m => m.messageId === message.messageId)) {
+            return
+        }
         messages.value[familyId].push(message)
     }
 
@@ -128,19 +131,36 @@ const useFamilyStore = defineStore('family', () => {
         }
     }
 
-    function addReaction(familyId: string, messageId: string, reaction: string) {
+    function setReactions(familyId: string, messageId: string, reactions: MessageDto['reactions']) {
         const familyMessages = messages.value[familyId]
         if (familyMessages) {
             const msg = familyMessages.find(m => m.messageId === messageId)
             if (msg) {
-                if (!msg.reactions) msg.reactions = []
-                msg.reactions.push({ emoji: reaction })
+                msg.reactions = reactions
             }
         }
     }
 
     function loadMessages(familyId: string, newMessages: MessageDto[]) {
         messages.value[familyId] = newMessages
+    }
+
+    function prependMessages(familyId: string, newMessages: MessageDto[]) {
+        const existing = new Set((messages.value[familyId] || []).map(m => m.messageId))
+        const fresh = newMessages.filter(m => !existing.has(m.messageId))
+        if (fresh.length) {
+            messages.value[familyId] = [...fresh, ...(messages.value[familyId] || [])]
+        }
+    }
+
+    function setReads(familyId: string, messageId: string, reads: MessageDto['reads']) {
+        const familyMessages = messages.value[familyId]
+        if (familyMessages) {
+            const msg = familyMessages.find(m => m.messageId === messageId)
+            if (msg) {
+                msg.reads = reads
+            }
+        }
     }
 
     return {
@@ -166,8 +186,10 @@ const useFamilyStore = defineStore('family', () => {
         loadRoles,
         loadMessages,
         addMessage,
+        prependMessages,
         updateMessage,
-        addReaction,
+        setReactions,
+        setReads,
         removeMessage,
         membersInfo
     }

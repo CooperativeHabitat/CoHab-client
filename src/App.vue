@@ -1,5 +1,5 @@
 <template>
-  <div id="app">
+  <div id="app" class="d-flex flex-column vh-100">
     <Header />
     <div id="toast-container" class="toast-container position-fixed bottom-0 end-0 p-3"></div>
     <router-view v-slot="{ Component }">
