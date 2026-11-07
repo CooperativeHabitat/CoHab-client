@@ -108,7 +108,7 @@
                   style="background: #1c2733;"
                   :title="group.members.join(', ')"
                 >
-                  <span>{{ group.emoji }}</span>
+                  <img :src="twemojiUrl(group.emoji)" class="twemoji-emoji" alt="" />
                   <small v-if="group.count > 1" style="color: #7d8e9e;">{{ group.count }}</small>
                 </span>
 
@@ -212,7 +212,7 @@
             class="btn btn-sm border-0 py-1 px-2"
             style="background: transparent;"
             @click="sendReaction(menuMessage, emoji); closeMessageMenu()"
-          >{{ emoji }}</button>
+          ><img :src="twemojiUrl(emoji)" class="twemoji-emoji" alt="" /></button>
         </div>
         <template v-if="menuMessage">
           <hr class="my-1" style="border-color: #2f3d4d;">
@@ -288,6 +288,15 @@ const parseSmileys = (text: string): string => {
     }
   }
   return result
+}
+
+const twemojiUrl = (emoji: string): string => {
+  const codes: string[] = []
+  for (const ch of Array.from(emoji)) {
+    const cp = ch.codePointAt(0)!.toString(16)
+    if (cp !== 'fe0f') codes.push(cp)
+  }
+  return `https://cdn.jsdelivr.net/gh/jdecked/twemoji@v15.1.0/assets/svg/${codes.join('-')}.svg`
 }
 
 const familyStore = useFamilyStore()

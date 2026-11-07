@@ -69,6 +69,13 @@ nav.navbar.bg-body {
   border-radius: 1rem;
 }
 
+.twemoji-emoji {
+  width: 1.15em;
+  height: 1.15em;
+  display: inline-block;
+  vertical-align: -0.2em;
+}
+
 .scroll-bottom-btn {
   position: absolute;
   right: 14px;
