@@ -28,6 +28,19 @@ html, body, #app {
   --pico-font-size: 90%;
 }
 
+[data-bs-theme="dark"] {
+  --bs-body-bg: #26304e;
+  --bs-body-color: #e9edf8;
+  --bs-secondary-bg: #313d61;
+  --bs-tertiary-bg: #2c3857;
+  --bs-card-bg: #2d3959;
+  --bs-border-color: #43517c;
+}
+
+nav.navbar.bg-body {
+  background-color: var(--bs-card-bg) !important;
+}
+
 .splitpanes__pane {
   background: transparent !important;
 }

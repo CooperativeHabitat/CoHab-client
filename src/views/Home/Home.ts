@@ -38,6 +38,7 @@ export default {
     const joiningFamily = ref(false)
     const userHasFamily = ref(true)
     const mobileTab = ref<'tasks' | 'members' | 'chat'>('tasks')
+    const sideTab = ref<'chat' | 'members'>('chat')
     const isMobileView = ref(false)
     const selectedFamilyId = ref('')
 
@@ -303,13 +304,20 @@ export default {
     onMounted(async () => {
       checkMobileView()
       window.addEventListener('resize', checkMobileView)
-      
+
       await loadFamilies()
       checkHasFamily()
 
-      if (userHasFamily.value && Object.keys(families.value).length > 0) {
-        const firstFamilyId = Object.keys(families.value)[0]
-        familyStore.activeFamilyTab = firstFamilyId
+      if (!activeFamilyTab.value && userHasFamily.value && Object.keys(families.value).length > 0) {
+        familyStore.activeFamilyTab = Object.keys(families.value)[0]
+      }
+
+      if (activeFamilyTab.value) {
+        await Promise.all([
+          loadMembers(activeFamilyTab.value, false),
+          loadTasks(activeFamilyTab.value, false),
+          loadRoles(activeFamilyTab.value, false)
+        ])
       }
     })
 
@@ -336,6 +344,7 @@ export default {
       families,
       familyStore,
       mobileTab,
+      sideTab,
       isMobileView,
       selectedFamilyId,
       formatDate,

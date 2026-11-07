@@ -1,33 +1,21 @@
 import {getLoginState} from "@/services/loginStateResolver.ts";
-import { HomeIcon, UserIcon, LogOutIcon } from 'lucide-vue-next'
-import {authService} from "@/services/authService.ts";
-import router from "@/router";
+import { HomeIcon } from 'lucide-vue-next'
 import NotificationDropdown from './NotificationDropdown.vue'
+import ProfileDropdown from './ProfileDropdown.vue'
 
 export default {
     name: 'Header',
-    components: {           
-        HomeIcon,          
-        UserIcon,           
-        LogOutIcon,
-        NotificationDropdown
-    }, 
+    components: {
+        HomeIcon,
+        NotificationDropdown,
+        ProfileDropdown
+    },
 
     setup() {
         const {loginState} = getLoginState();
 
-        const handleLogoutClick = () => {
-            authService.logout();
-            return router.push('/login');
-        }
-        const handleProfileClick = () => {
-            console.log('handleProfileClick')
-        }
-
         return{
             state: loginState,
-            handleProfileClick,
-            handleLogoutClick,
         }
     }
 }

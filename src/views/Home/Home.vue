@@ -114,29 +114,29 @@
             <!-- Активная семья -->
             <div v-if="activeFamilyTab && familyStore.families[activeFamilyTab]" class="flex-grow-1 overflow-hidden d-flex flex-column">
               <!-- Мобильная версия: вкладки -->
-              <ul class="nav nav-pills mb-3 d-md-none flex-shrink-0">
+              <ul class="nav nav-pills nav-fill gap-1 mb-2 d-md-none flex-shrink-0">
                 <li class="nav-item">
-                  <button 
-                    :class="['nav-link', { active: mobileTab === 'tasks' }]"
+                  <button
+                    :class="['nav-link py-1', { active: mobileTab === 'tasks' }]"
                     @click="mobileTab = 'tasks'"
                   >
-                    Задачи
+                    <i class="bi bi-list-check"></i>
                   </button>
                 </li>
                 <li class="nav-item">
-                  <button 
-                    :class="['nav-link', { active: mobileTab === 'members' }]"
-                    @click="mobileTab = 'members'"
-                  >
-                    Участники
-                  </button>
-                </li>
-                <li class="nav-item">
-                  <button 
-                    :class="['nav-link', { active: mobileTab === 'chat' }]"
+                  <button
+                    :class="['nav-link py-1', { active: mobileTab === 'chat' }]"
                     @click="mobileTab = 'chat'"
                   >
-                    Чат
+                    <i class="bi bi-chat-dots"></i>
+                  </button>
+                </li>
+                <li class="nav-item">
+                  <button
+                    :class="['nav-link py-1', { active: mobileTab === 'members' }]"
+                    @click="mobileTab = 'members'"
+                  >
+                    <i class="bi bi-people"></i>
                   </button>
                 </li>
               </ul>
@@ -144,7 +144,40 @@
               <!-- Десктопная версия: Splitpanes -->
               <div class="d-none d-md-flex flex-grow-1 overflow-hidden">
                 <Splitpanes class="default-theme" style="height: 100%;">
-                  <Pane :size="60" :min-size="40">
+                  <Pane :size="55" :min-size="35">
+                    <div class="h-100 d-flex flex-column overflow-hidden">
+                      <ul class="nav nav-pills nav-fill gap-1 flex-shrink-0 mb-2">
+                        <li class="nav-item">
+                          <button :class="['nav-link py-1', { active: sideTab === 'chat' }]" @click="sideTab = 'chat'">
+                            <i class="bi bi-chat-dots me-1"></i>Чат
+                          </button>
+                        </li>
+                        <li class="nav-item">
+                          <button :class="['nav-link py-1', { active: sideTab === 'members' }]" @click="sideTab = 'members'">
+                            <i class="bi bi-people me-1"></i>Участники
+                          </button>
+                        </li>
+                      </ul>
+
+                      <div class="flex-grow-1 overflow-hidden">
+                        <div v-show="sideTab === 'chat'" class="h-100">
+                          <ChatComponent />
+                        </div>
+
+                        <div v-show="sideTab === 'members'" class="h-100">
+                          <MembersPanel :members="familyMembers"
+                                        :members-loading="familyMembersLoading"
+                                        :available-roles="familyStore.roles[activeFamilyTab] || []"
+                                        @settings="navigateToFamilySettings"
+                                        @invite="handleOpenInvitationForm"
+                                        @assign-role="handleAssignRole"
+                                        @detach-role="handleDetachRole" />
+                        </div>
+                      </div>
+                    </div>
+                  </Pane>
+
+                  <Pane :size="45" :min-size="30">
                     <TaskManager :tasks="currentTasks"
                                  :tasks-loading="tasksLoading"
                                  :current-user-id="familyStore.profiles[activeFamilyTab]?.id"
@@ -155,31 +188,13 @@
                                  @refresh="loadTasks(activeFamilyTab, true)"
                                  @add-task="showAddTaskForm" />
                   </Pane>
-                  
-                  <Pane :size="40" :min-size="25">
-                    <Splitpanes class="default-theme" :horizontal="true" style="height: 100%;">
-                      <Pane :size="55" :min-size="30">
-                        <MembersPanel :members="familyMembers"
-                                      :members-loading="familyMembersLoading"
-                                      :available-roles="familyStore.roles[activeFamilyTab] || []"
-                                      @settings="navigateToFamilySettings"
-                                      @invite="handleOpenInvitationForm"
-                                      @assign-role="handleAssignRole"
-                                      @detach-role="handleDetachRole" />
-                      </Pane>
-                      
-                      <Pane :size="45" :min-size="20">
-                        <ChatComponent/>
-                      </Pane>
-                    </Splitpanes>
-                  </Pane>
                 </Splitpanes>
               </div>
 
               <!-- Мобильная версия: контент по вкладкам -->
               <div class="d-md-none flex-grow-1 overflow-hidden">
                 <div v-show="mobileTab === 'tasks'" class="h-100">
-                  <TaskManager 
+                  <TaskManager
                     :tasks="currentTasks"
                     :tasks-loading="tasksLoading"
                     :current-user-id="familyStore.profiles[activeFamilyTab]?.id"
@@ -188,24 +203,24 @@
                     @edit-task="handleEditTaskPress"
                     @delete-task="handleDeleteTask"
                     @refresh="loadTasks(activeFamilyTab, true)"
-                    @add-task="showAddTaskForm" 
+                    @add-task="showAddTaskForm"
                   />
                 </div>
-                
+
+                <div v-show="mobileTab === 'chat'" class="h-100">
+                  <ChatComponent />
+                </div>
+
                 <div v-show="mobileTab === 'members'" class="h-100">
-                  <MembersPanel 
+                  <MembersPanel
                     :members="familyMembers"
                     :members-loading="familyMembersLoading"
                     :available-roles="familyStore.roles[activeFamilyTab] || []"
                     @settings="navigateToFamilySettings"
                     @invite="handleOpenInvitationForm"
                     @assign-role="handleAssignRole"
-                    @detach-role="handleDetachRole" 
+                    @detach-role="handleDetachRole"
                   />
-                </div>
-                
-                <div v-show="mobileTab === 'chat'" class="h-100">
-                  <ChatComponent />
                 </div>
               </div>
             </div>

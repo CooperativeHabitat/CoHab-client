@@ -1,10 +1,5 @@
 <template>
   <div class="card h-100 d-flex flex-column overflow-hidden">
-    <div class="card-header bg-body-tertiary border-bottom">
-      <h5 class="mb-0">
-        <i class="bi bi-chat-dots-fill me-2"></i>Чат семьи
-      </h5>
-    </div>
     <div
       class="card-body flex-grow-1 overflow-auto p-3"
       ref="chatBody"

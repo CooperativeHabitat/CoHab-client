@@ -10,14 +10,7 @@
           <NotificationDropdown />
         </li>
         <li class="nav-item">
-          <button @click="handleProfileClick" class="btn nav-link" title="Профиль">
-            <UserIcon :size="20" />
-          </button>
-        </li>
-        <li class="nav-item">
-          <button @click="handleLogoutClick" class="btn nav-link text-danger" title="Выйти">
-            <LogOutIcon :size="20" />
-          </button>
+          <ProfileDropdown />
         </li>
       </ul>
     </div>

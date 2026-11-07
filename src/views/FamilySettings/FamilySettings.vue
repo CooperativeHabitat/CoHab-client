@@ -144,11 +144,11 @@
 </template>
 
 <script setup lang="ts">
-import { computed, onMounted, reactive, ref, unref } from 'vue'
+import { computed, onMounted, reactive, ref, unref, watch } from 'vue'
 import { useRoute } from 'vue-router'
 import { ValidationError } from "@/error/types/serverErrorResponses"
 import ValidationErrorComponent from "@/error/templates/ValidationErrorComponent.vue"
-import type { Family, Role } from '@/types/family'
+import type { Family, FamilyMember, Role } from '@/types/family'
 import { apiService } from '@/services/api'
 import { ProblemDetail } from '@/error/types/serverErrorResponses'
 import useFamilyStore from "@/stores/familyStore.ts"
@@ -181,8 +181,9 @@ const sortedRoles = computed(() => {
 })
 
 
-const loadRoles = async () => {
-  if(familyStore.roles){
+const loadRoles = async (force: boolean = false) => {
+  const existing = familyStore.roles[familyId.value]
+  if (!force && existing && existing.length > 0) {
     return
   }
   rolesLoading.value = true
@@ -194,6 +195,31 @@ const loadRoles = async () => {
     console.error('Ошибка загрузки ролей:', err)
   } finally {
     rolesLoading.value = false
+  }
+}
+
+const loadFamilies = async () => {
+  if (familyStore.families[familyId.value]) {
+    return
+  }
+  try {
+    const familiesLoad: FamilyMember[] = (await apiService.get('member/families')).body || []
+    familyStore.loadFamilies(familiesLoad)
+  } catch (err) {
+    console.error('Ошибка загрузки семей:', err)
+  }
+}
+
+const loadMembers = async () => {
+  const existing = familyStore.members[familyId.value]
+  if (existing && existing.length > 0) {
+    return
+  }
+  try {
+    const members: FamilyMember[] = (await apiService.get(`family/${familyId.value}/members`)).body || []
+    familyStore.loadMembers(members)
+  } catch (err) {
+    console.error('Ошибка загрузки участников:', err)
   }
 }
 
@@ -266,7 +292,7 @@ const saveRole = async () => {
         accesses: newRole.accessList
       })
     }
-    await loadRoles()
+    await loadRoles(true)
     cancelEdit()
   } catch (err) {
     console.error('Ошибка сохранения роли:', err)
@@ -275,6 +301,7 @@ const saveRole = async () => {
 
 const loadFamilyData = async () => {
   try {
+    await loadFamilies()
     const family = familyStore.families[familyId.value]
     if (family) {
       familyNameModel.value = unref(family).familyName
@@ -301,9 +328,23 @@ const deleteRole = async (role: Role) => {
   }
 }
 
-onMounted(async () => {
-  await loadAccesses()
-  await loadFamilyData()
-  await loadRoles()
+const loadFamilyContent = async () => {
+  familyStore.activeFamilyTab = familyId.value
+  await Promise.all([
+    loadAccesses(),
+    loadFamilyData(),
+    loadRoles(),
+    loadMembers()
+  ])
+}
+
+onMounted(loadFamilyContent)
+
+watch(familyId, (newId) => {
+  if (newId) {
+    familyNameModel.value = ''
+    cancelEdit()
+    loadFamilyContent()
+  }
 })
 </script>

@@ -7,19 +7,23 @@
     </div>
     
     <template v-else>
-      <div class="card-header d-flex justify-content-between align-items-center">
-        <h2 class="mb-0">Участники</h2>
-        <div class="d-flex gap-2">
-          <button @click="$emit('settings')" class="btn btn-outline-secondary btn-sm">Настройки</button>
-          <button @click="$emit('invite')" class="btn btn-outline-secondary btn-sm">Пригласить</button>
-        </div>
+      <div class="card-header bg-body-tertiary border-bottom d-flex justify-content-end align-items-center py-2 gap-2">
+        <button @click="$emit('invite')" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Пригласить">
+          <i class="bi bi-person-plus me-1"></i>Пригласить
+        </button>
+        <button @click="$emit('settings')" class="btn btn-sm btn-outline-secondary py-0 px-2" title="Настройки">
+          <i class="bi bi-gear"></i>
+        </button>
       </div>
-      
-      <div class="card-body overflow-auto flex-grow-1">
-        <div v-if="members.length === 0" class="text-center py-3">
-          <p>Нет участников</p>
+
+      <div class="card-body overflow-auto flex-grow-1 p-2">
+        <div v-if="members.length === 0" class="d-flex flex-column align-items-center justify-content-center h-100 text-center">
+          <div class="rounded-circle d-flex align-items-center justify-content-center bg-primary bg-opacity-10 mb-3" style="width: 4rem; height: 4rem;">
+            <i class="bi bi-people fs-3 text-primary"></i>
+          </div>
+          <p class="mb-0">Нет участников</p>
         </div>
-        <div v-else class="d-flex flex-column gap-3">
+        <div v-else class="d-flex flex-column gap-2">
           <div v-for="member in members" :key="member.value?.id || member.id">
             <FamilyMemberCard 
               :member="member"
