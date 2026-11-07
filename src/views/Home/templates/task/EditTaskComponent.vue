@@ -1,13 +1,16 @@
 <template>
-  <div class="modal d-block" tabindex="-1" style="background: rgba(0,0,0,0.5); backdrop-filter: blur(4px);">
-    <div class="modal-dialog">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title">{{ familyStore.editTask ? 'Редактирование задачи' : 'Новая задача' }}</h5>
-          <button @click="$emit('close')" class="btn-close"></button>
-        </div>
+  <div
+    class="position-absolute top-0 start-0 w-100 h-100 d-flex overflow-auto p-2 p-md-3"
+    style="background: rgba(14, 22, 33, 0.6); backdrop-filter: blur(2px); z-index: 30;"
+    @click.self="$emit('close')"
+  >
+    <div class="modal-content shadow m-auto" style="width: min(520px, 100%);">
+      <div class="modal-header">
+        <h5 class="modal-title">{{ familyStore.editTask ? 'Редактирование задачи' : 'Новая задача' }}</h5>
+        <button @click="$emit('close')" class="btn-close"></button>
+      </div>
 
-        <div class="modal-body">
+      <div class="modal-body">
           <div v-if="hasErrors" class="alert alert-danger">
             <ValidationErrorComponent :error="errorState.validationError" />
           </div>
@@ -46,7 +49,6 @@
           </button>
         </div>
       </div>
-    </div>
   </div>
 </template>
 

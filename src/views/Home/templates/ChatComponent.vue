@@ -1,10 +1,11 @@
 <template>
-  <div class="card h-100 d-flex flex-column overflow-hidden">
-    <div
-      class="card-body flex-grow-1 overflow-auto p-3 chat-scroll"
-      ref="chatBody"
-      @scroll.passive="onChatScroll"
-    >
+  <div class="card h-100 d-flex flex-column overflow-hidden position-relative">
+    <div class="flex-grow-1 overflow-hidden position-relative">
+      <div
+        class="card-body h-100 overflow-auto p-3 chat-scroll"
+        ref="chatBody"
+        @scroll.passive="onChatScroll"
+      >
       <div v-if="historyBusy" class="text-center py-2">
         <div class="spinner-border spinner-border-sm text-primary" role="status">
           <span class="visually-hidden">Загрузка...</span>
@@ -138,8 +139,28 @@
       </TransitionGroup>
     </div>
 
-    <div v-if="typingNames.length" class="px-3 py-1 small text-muted border-top" style="background: #17212b;">
-      <i class="bi bi-pencil me-1"></i>{{ typingNames.join(', ') }} {{ typingNames.length > 1 ? 'печатают…' : 'печатает…' }}
+      <button
+        v-if="showScrollButton"
+        class="scroll-bottom-btn"
+        title="Вниз"
+        @click="scrollToBottomSmooth"
+      >
+        <i class="bi bi-arrow-down"></i>
+      </button>
+    </div>
+
+    <div v-if="typingIds.length" class="px-3 py-2 border-top d-flex align-items-center gap-3 flex-wrap" style="background: #17212b;">
+      <div v-for="memberId in typingIds" :key="memberId" class="d-flex align-items-center gap-2">
+        <div
+          class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0"
+          style="width: 1.7rem; height: 1.7rem; font-size: 0.65rem; background: #5288c1;"
+        >{{ memberInitials(memberId) }}</div>
+        <div class="typing-bubble d-flex align-items-center gap-1 px-2 py-2">
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+          <span class="typing-dot"></span>
+        </div>
+      </div>
     </div>
 
     <div v-if="replyTo" class="d-flex align-items-center gap-2 px-3 py-2 border-top" style="background: #17212b;">
@@ -422,9 +443,20 @@ const replyTarget = (message: MessageDto): MessageDto | null => {
   return null
 }
 
+let suppressScrollLoad = false
+
 const scrollToMessage = (messageId: string) => {
-  const el = chatBody.value?.querySelector(`[data-mid="${messageId}"]`)
-  el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  const el = chatBody.value?.querySelector(`[data-mid="${messageId}"]`) as HTMLElement | null
+  if (!el) return
+  suppressScrollLoad = true
+  el.scrollIntoView({ behavior: 'smooth', block: 'center' })
+  el.classList.remove('message-flash')
+  void el.offsetWidth
+  el.classList.add('message-flash')
+  setTimeout(() => el.classList.remove('message-flash'), 1300)
+  setTimeout(() => {
+    suppressScrollLoad = false
+  }, 900)
 }
 
 const typingIds = ref<string[]>([])
@@ -442,8 +474,6 @@ const handleTyping = (memberId: string) => {
   }, 4000)
 }
 
-const typingNames = computed(() => typingIds.value.map(id => getMemberName(id)))
-
 const clearTyping = () => {
   Object.keys(typingTimers).forEach(id => {
     clearTimeout(typingTimers[id])
@@ -454,11 +484,23 @@ const clearTyping = () => {
 
 let lastTypingSent = 0
 
+const showScrollButton = ref(false)
+
 const onInputTyping = () => {
   const now = Date.now()
   if (!activeFamilyTab.value || now - lastTypingSent < 2500) return
   lastTypingSent = now
   rsocketService.fireAndForget('api.family.chat.typing', { familyId: activeFamilyTab.value }).catch(() => {})
+}
+
+const scrollToBottomSmooth = () => {
+  const body = chatBody.value
+  if (!body) return
+  suppressScrollLoad = true
+  body.scrollTo({ top: body.scrollHeight, behavior: 'smooth' })
+  setTimeout(() => {
+    suppressScrollLoad = false
+  }, 900)
 }
 
 const startReply = (message: MessageDto) => {
@@ -614,8 +656,11 @@ const ensureScrollable = async () => {
   }
 }
 
-const prependAndRestore = async (familyId: string, page: MessageDto[], body: HTMLElement | undefined, previousTop: number, previousHeight: number) => {
+const prependAndRestore = async (familyId: string, page: MessageDto[], body: HTMLElement | undefined) => {
   suppressAnimation = true
+  suppressScrollLoad = true
+  const previousTop = body?.scrollTop ?? 0
+  const previousHeight = body?.scrollHeight ?? 0
   familyStore.prependMessages(familyId, page.reverse())
   markMessagesAsRead(page)
   await nextTick()
@@ -623,6 +668,9 @@ const prependAndRestore = async (familyId: string, page: MessageDto[], body: HTM
     body.scrollTop = previousTop + (body.scrollHeight - previousHeight)
   }
   suppressAnimation = false
+  setTimeout(() => {
+    suppressScrollLoad = false
+  }, 300)
 }
 
 const loadChatHistory = async () => {
@@ -640,11 +688,14 @@ const loadChatHistory = async () => {
         historyWindowEnd = end
         historyPage = 0
         noMoreHistory.value = false
+        suppressAnimation = true
         familyStore.loadMessages(familyId, page.reverse())
+        markMessagesAsRead(page)
+        await nextTick()
         if (familyStore.activeFamilyTab === familyId) {
           scrollToBottom()
         }
-        markMessagesAsRead(page)
+        suppressAnimation = false
         await ensureScrollable()
         return
       }
@@ -667,13 +718,11 @@ const loadOlderMessages = async () => {
   if (historyFamilyId !== familyId || noMoreHistory.value) return
   historyBusy.value = true
   const body = chatBody.value
-  const previousTop = body ? body.scrollTop : 0
-  const previousHeight = body ? body.scrollHeight : 0
   try {
     let page = await fetchMessagesPage(familyId, historyWindowStart, historyWindowEnd, historyPage + 1)
     if (page.length > 0) {
       historyPage += 1
-      await prependAndRestore(familyId, page, body, previousTop, previousHeight)
+      await prependAndRestore(familyId, page, body)
       return
     }
 
@@ -685,7 +734,7 @@ const loadOlderMessages = async () => {
         historyWindowStart = start
         historyWindowEnd = end
         historyPage = 0
-        await prependAndRestore(familyId, page, body, previousTop, previousHeight)
+        await prependAndRestore(familyId, page, body)
         return
       }
       end = start
@@ -702,7 +751,9 @@ const loadOlderMessages = async () => {
 
 const onChatScroll = () => {
   const body = chatBody.value
-  if (body && body.scrollTop <= 80) {
+  if (!body) return
+  showScrollButton.value = body.scrollHeight - body.scrollTop - body.clientHeight > 300
+  if (!suppressScrollLoad && body.scrollTop <= 80) {
     loadOlderMessages()
   }
 }
@@ -744,10 +795,13 @@ const connectToChatStream = () => {
               content: response.replyTo.content
             }
           }
+          const wasNearBottom = isNearBottom()
           familyStore.addMessage(response.familyId, incoming)
           markMessagesAsRead([incoming])
           typingIds.value = typingIds.value.filter(id => id !== response.memberId)
-          scrollToBottom()
+          if (wasNearBottom) {
+            scrollToBottom()
+          }
         } else if (response.operationType === ChatOperationType.EDIT_MESSAGE) {
           familyStore.updateMessage(response.familyId, response.messageId, response.content)
         } else if (response.operationType === ChatOperationType.DELETE_MESSAGE) {
@@ -826,6 +880,7 @@ const showDaySeparator = (message: MessageDto, index: number) => {
 watch(activeFamilyTab, async (newTab) => {
   readInfoId.value = null
   replyTo.value = null
+  showScrollButton.value = false
   clearTyping()
   closeMessageMenu()
   if (newTab) {

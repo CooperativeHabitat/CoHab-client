@@ -1,6 +1,5 @@
 <template>
   <div class="d-flex flex-column overflow-hidden">
-    <EditTaskComponent v-if="showEditTaskComponent" @close="handleCloseTaskForm" />
     <CreateInvitationComponent v-if="showCreateInvitationComponent" @close-invitation="handleCloseInvitationForm" />
     
     <main class="flex-grow-1 d-flex flex-column p-2 p-md-4 overflow-hidden">
@@ -178,22 +177,25 @@
                   </Pane>
 
                   <Pane :size="67" :min-size="40">
-                    <TaskManager :tasks="currentTasks"
-                                 :tasks-loading="tasksLoading"
-                                 :current-user-id="familyStore.profiles[activeFamilyTab]?.id"
-                                 @mark-task="handleMarkTask"
-                                 @check-task="handleCheckTask"
-                                 @edit-task="handleEditTaskPress"
-                                 @delete-task="handleDeleteTask"
-                                 @refresh="loadTasks(activeFamilyTab, true)"
-                                 @add-task="showAddTaskForm" />
+                    <div class="h-100 position-relative">
+                      <TaskManager :tasks="currentTasks"
+                                   :tasks-loading="tasksLoading"
+                                   :current-user-id="familyStore.profiles[activeFamilyTab]?.id"
+                                   @mark-task="handleMarkTask"
+                                   @check-task="handleCheckTask"
+                                   @edit-task="handleEditTaskPress"
+                                   @delete-task="handleDeleteTask"
+                                   @refresh="loadTasks(activeFamilyTab, true)"
+                                   @add-task="showAddTaskForm" />
+                      <EditTaskComponent v-if="showEditTaskComponent" @close="handleCloseTaskForm" />
+                    </div>
                   </Pane>
                 </Splitpanes>
               </div>
 
               <!-- Мобильная версия: контент по вкладкам -->
               <div class="d-md-none flex-grow-1 overflow-hidden">
-                <div v-show="mobileTab === 'tasks'" class="h-100">
+                <div v-show="mobileTab === 'tasks'" class="h-100 position-relative">
                   <TaskManager
                     :tasks="currentTasks"
                     :tasks-loading="tasksLoading"
@@ -205,6 +207,7 @@
                     @refresh="loadTasks(activeFamilyTab, true)"
                     @add-task="showAddTaskForm"
                   />
+                  <EditTaskComponent v-if="showEditTaskComponent" @close="handleCloseTaskForm" />
                 </div>
 
                 <div v-show="mobileTab === 'chat'" class="h-100">
