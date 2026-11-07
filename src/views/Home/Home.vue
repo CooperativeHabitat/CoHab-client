@@ -144,7 +144,7 @@
               <!-- Десктопная версия: Splitpanes -->
               <div class="d-none d-md-flex flex-grow-1 overflow-hidden">
                 <Splitpanes class="default-theme" style="height: 100%;">
-                  <Pane :size="55" :min-size="35">
+                  <Pane :size="33" :min-size="25">
                     <div class="h-100 d-flex flex-column overflow-hidden">
                       <ul class="nav nav-pills nav-fill gap-1 flex-shrink-0 mb-2">
                         <li class="nav-item">
@@ -177,7 +177,7 @@
                     </div>
                   </Pane>
 
-                  <Pane :size="45" :min-size="30">
+                  <Pane :size="67" :min-size="40">
                     <TaskManager :tasks="currentTasks"
                                  :tasks-loading="tasksLoading"
                                  :current-user-id="familyStore.profiles[activeFamilyTab]?.id"

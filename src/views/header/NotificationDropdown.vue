@@ -1,6 +1,7 @@
 <template>
   <div>
     <button
+      ref="bellButton"
       class="btn nav-link position-relative"
       aria-expanded="false"
       @click="togglePopup"
@@ -26,7 +27,8 @@
       <div
         v-if="popupOpen"
         class="card shadow-lg rounded-3 overflow-hidden"
-        style="position: fixed; top: 64px; right: 16px; width: min(360px, calc(100vw - 24px)); z-index: 1050;"
+        style="position: fixed; width: min(360px, calc(100vw - 24px)); z-index: 1050;"
+        :style="popupStyle"
       >
         <div class="card-header bg-body-tertiary border-bottom d-flex justify-content-between align-items-center py-2">
           <div class="d-flex align-items-center gap-2">
@@ -71,12 +73,21 @@ import type { NotificationDto, NotificationRequest } from '@/types/notification'
 
 const notificationStore = useNotificationStore()
 const popupOpen = ref(false)
+const bellButton = ref<HTMLElement>()
+const popupStyle = ref<{ top?: string; right?: string }>({})
 let subscription: any = null
 
 const togglePopup = () => {
   popupOpen.value = !popupOpen.value
   if (popupOpen.value) {
     notificationStore.markAllRead()
+    const rect = bellButton.value?.getBoundingClientRect()
+    if (rect) {
+      popupStyle.value = {
+        top: Math.round(rect.bottom + 8) + 'px',
+        right: Math.max(8, Math.round(window.innerWidth - rect.right)) + 'px'
+      }
+    }
   }
 }
 

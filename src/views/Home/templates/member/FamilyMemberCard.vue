@@ -19,9 +19,9 @@
     </div>
     
     <div class="dropdown">
-      <button class="btn btn-link text-secondary p-1" 
-              type="button" 
-              data-bs-toggle="dropdown" 
+      <button class="btn btn-link text-secondary p-1 text-decoration-none"
+              type="button"
+              data-bs-toggle="dropdown"
               aria-expanded="false"
               style="font-size: 1.5rem; line-height: 1;">
         ⋮
@@ -61,7 +61,6 @@ const emit = defineEmits<{
 
 const memberData = computed(() => props.member.value)
 
-// ✅ Добавьте безопасную проверку personalInfo
 const personalInfo = computed(() => memberData.value.member?.personalInfo)
 
 const initials = computed(() => {

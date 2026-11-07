@@ -2,12 +2,14 @@ export interface ChatResponse {
   familyId: string
   memberId: string
   messageId: string
+  replyToId: string | null
   content: string
   reactions: Reaction[] | null
   reads: MessageRead[] | null
   operationType: ChatOperationType | null
   sentAt: string
   updatedAt: string
+  replyTo?: MessageDto | null
 }
 
 export enum ChatOperationType {
@@ -15,7 +17,8 @@ export enum ChatOperationType {
   EDIT_MESSAGE = 'EDIT_MESSAGE',
   DELETE_MESSAGE = 'DELETE_MESSAGE',
   REACTION_ON_MESSAGE = 'REACTION_ON_MESSAGE',
-  VIEWED_MESSAGE = 'VIEWED_MESSAGE'
+  VIEWED_MESSAGE = 'VIEWED_MESSAGE',
+  TYPING = 'TYPING'
 }
 
 export interface MessageDto {
@@ -27,6 +30,7 @@ export interface MessageDto {
   reads: MessageRead[] | null
   sentAt: string
   updatedAt: string
+  replyPreview?: { memberId: string; content: string } | null
 }
 
 export interface MessageRequest {

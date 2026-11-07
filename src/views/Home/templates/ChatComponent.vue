@@ -1,7 +1,7 @@
 <template>
   <div class="card h-100 d-flex flex-column overflow-hidden">
     <div
-      class="card-body flex-grow-1 overflow-auto p-3"
+      class="card-body flex-grow-1 overflow-auto p-3 chat-scroll"
       ref="chatBody"
       @scroll.passive="onChatScroll"
     >
@@ -19,120 +19,113 @@
         <p class="text-muted small">Будьте первым, кто напишет в чат!</p>
       </div>
       <TransitionGroup v-else name="message" tag="div" @enter="onEnter" @leave="onLeave">
-        <div v-for="(message, index) in messages" :key="message.messageId" class="mb-3">
+        <div
+          v-for="(message, index) in messages"
+          :key="message.messageId"
+          :class="isLastOfGroup(message, index) ? 'mb-2' : 'mb-1'"
+        >
           <div v-if="showDaySeparator(message, index)" class="d-flex justify-content-center my-3">
-            <span class="badge bg-body-tertiary text-secondary fw-normal">{{ dayLabel(message.sentAt) }}</span>
+            <span class="badge border-0 fw-normal small" style="background: #1c2733; color: #7d8e9e;">{{ dayLabel(message.sentAt) }}</span>
           </div>
-          <div :class="['d-flex', isCurrentUser(message.memberId) ? 'justify-content-end' : 'justify-content-start']">
-            <div class="w-75">
-              <div :class="[
-                'p-3 position-relative',
-                isCurrentUser(message.memberId)
-                  ? 'bg-primary text-white ms-auto rounded-3'
-                  : 'bg-body-tertiary rounded-3'
-              ]">
-                <div v-if="deletingMessageId === message.messageId" class="text-center py-3">
-                  <p class="mb-2">Удалить сообщение?</p>
+
+          <div
+            :data-mid="message.messageId"
+            :class="['d-flex gap-2', isCurrentUser(message.memberId) ? 'justify-content-end' : 'justify-content-start']"
+            @contextmenu.prevent="openMessageMenu($event, message)"
+            @touchstart.passive="startLongPress($event, message)"
+            @touchend="cancelLongPress"
+            @touchmove.passive="cancelLongPress"
+          >
+            <div
+              v-if="!isCurrentUser(message.memberId) && isLastOfGroup(message, index)"
+              class="rounded-circle d-flex align-items-center justify-content-center fw-bold text-white flex-shrink-0"
+              style="width: 2.2rem; height: 2.2rem; font-size: 0.8rem; background: #5288c1; margin-top: 0.25rem;"
+            >{{ memberInitials(message.memberId) }}</div>
+            <div
+              v-else-if="!isCurrentUser(message.memberId)"
+              style="width: 2.2rem; flex-shrink: 0;"
+            ></div>
+
+            <div class="d-flex flex-column min-w-0" style="max-width: 80%;">
+              <div :class="['p-2 px-3 rounded-3', isCurrentUser(message.memberId) ? 'chat-msg-own' : 'chat-msg-other']">
+                <div v-if="deletingMessageId === message.messageId" class="text-center py-2">
+                  <p class="mb-2 small">Удалить сообщение?</p>
                   <div class="d-flex gap-2 justify-content-center">
-                    <button @click="confirmDeleteMessage" class="btn btn-sm btn-danger">
-                      <i class="bi bi-trash me-1"></i>Удалить
-                    </button>
-                    <button @click="deletingMessageId = null" class="btn btn-sm btn-secondary">Отмена</button>
+                    <button @click="confirmDeleteMessage" class="btn btn-sm btn-danger py-0 px-2">Удалить</button>
+                    <button @click="deletingMessageId = null" class="btn btn-sm btn-secondary py-0 px-2">Отмена</button>
                   </div>
                 </div>
+
                 <template v-else>
-                  <div class="d-flex justify-content-between align-items-center mb-1">
-                    <strong :class="isCurrentUser(message.memberId) ? 'text-white' : 'text-primary'">
-                      <i class="bi bi-person-circle me-1"></i>
-                      {{ getMemberName(message.memberId) }}
-                    </strong>
-                    <div class="d-flex align-items-center gap-2">
-                      <small
-                        :class="isCurrentUser(message.memberId) ? 'text-white-50' : 'text-muted'"
-                        :title="formatFullDate(message.sentAt)"
-                      >
-                        {{ formatDate(message.sentAt) }}
-                        <span v-if="isEdited(message)" class="ms-1">(изм.)</span>
-                      </small>
-                      <button
-                        class="btn btn-sm btn-link p-0"
-                        :class="isCurrentUser(message.memberId) ? 'text-white' : 'text-muted'"
-                        @click="toggleReactionPicker(message)"
-                        title="Реакция"
-                      >
-                        <i class="bi bi-emoji-smile"></i>
-                      </button>
-                      <div v-if="isCurrentUser(message.memberId)" class="dropdown" style="overflow: visible">
-                        <button
-                          class="btn btn-sm btn-link p-0 text-white"
-                          data-bs-toggle="dropdown"
-                          aria-expanded="false"
-                        >
-                          <i class="bi bi-three-dots-vertical"></i>
-                        </button>
-                        <ul class="dropdown-menu dropdown-menu-end" style="z-index: 9999">
-                          <li>
-                            <button class="dropdown-item" @click="startEdit(message)">
-                              <i class="bi bi-pencil me-2"></i>Редактировать
-                            </button>
-                          </li>
-                          <li>
-                            <button class="dropdown-item text-danger" @click="deletingMessageId = message.messageId">
-                              <i class="bi bi-trash me-2"></i>Удалить
-                            </button>
-                          </li>
-                        </ul>
-                      </div>
-                    </div>
+                  <div
+                    v-if="replyTarget(message)"
+                    class="rounded-3 px-2 py-1 mb-1"
+                    style="background: rgba(0,0,0,0.25); border-left: 3px solid #6ab3f3; cursor: pointer; font-size: 0.8rem; max-width: 100%;"
+                    :title="replyTarget(message)!.content"
+                    @click="scrollToMessage(message.replyToId!)"
+                  >
+                    <div class="fw-bold" style="color: #6ab3f3;">{{ getMemberName(replyTarget(message)!.memberId) }}</div>
+                    <div class="text-truncate">{{ parseSmileys(replyTarget(message)!.content) }}</div>
                   </div>
 
-                  <div v-if="editingMessageId === message.messageId" class="mb-2">
+                  <div v-if="!isCurrentUser(message.memberId) && isFirstOfGroup(message, index)" class="d-flex align-items-center gap-1 mb-1">
+                    <small class="fw-bold" style="color: #6ab3f3;">{{ getMemberName(message.memberId) }}</small>
+                  </div>
+
+                  <div v-if="editingMessageId === message.messageId" class="mb-1">
                     <textarea
                       v-model="editMessageText"
                       class="form-control form-control-sm mb-2"
                       rows="2"
                     ></textarea>
                     <div class="d-flex gap-2">
-                      <button @click="saveEditMessage(message.messageId)" class="btn btn-sm btn-light">Сохранить</button>
-                      <button @click="cancelEdit" class="btn btn-sm btn-outline-light">Отмена</button>
+                      <button @click="saveEditMessage(message.messageId)" class="btn btn-sm btn-light py-0 px-2">Сохранить</button>
+                      <button @click="cancelEdit" class="btn btn-sm btn-outline-secondary py-0 px-2">Отмена</button>
                     </div>
                   </div>
-                  <p v-else class="mb-1">{{ parseSmileys(message.content) }}</p>
-
-                  <div v-if="reactionPickerId === message.messageId" class="d-flex flex-wrap gap-1 mt-2">
-                    <button
-                      v-for="emoji in REACTION_EMOJIS"
-                      :key="emoji"
-                      class="btn btn-sm btn-light border py-0 px-2"
-                      @click="sendReaction(message, emoji)"
-                    >{{ emoji }}</button>
-                  </div>
-
-                  <div v-if="message.reactions && message.reactions.length" class="d-flex flex-wrap gap-1 mt-2">
+                  <p v-else class="mb-0" style="word-break: break-word;">
+                    {{ parseSmileys(message.content) }}
                     <span
-                      v-for="group in groupedReactions(message)"
-                      :key="group.emoji"
-                      class="badge bg-white text-dark"
-                      :title="group.members.join(', ')"
-                    >
-                      {{ group.emoji }} {{ group.count }}
-                    </span>
-                  </div>
+                      class="float-end d-inline-block ms-2"
+                      :class="isCurrentUser(message.memberId) ? 'text-white-50' : 'text-muted'"
+                      style="font-size: 0.7rem; margin-top: 0.8rem;"
+                      :title="formatFullDate(message.sentAt)"
+                    >{{ formatDate(message.sentAt) }}<span v-if="isEdited(message)"> (изм.)</span></span>
+                  </p>
                 </template>
               </div>
 
-              <div v-if="isCurrentUser(message.memberId)" class="d-flex justify-content-end mt-1">
+              <div
+                v-if="groupedReactions(message).length || isCurrentUser(message.memberId)"
+                class="d-flex align-items-center gap-2 mt-1 flex-wrap"
+                :class="isCurrentUser(message.memberId) ? 'justify-content-end' : 'justify-content-start'"
+              >
+                <span
+                  v-for="group in groupedReactions(message)"
+                  :key="group.emoji"
+                  class="badge rounded-pill border-0 d-flex align-items-center gap-1"
+                  style="background: #1c2733;"
+                  :title="group.members.join(', ')"
+                >
+                  <span>{{ group.emoji }}</span>
+                  <small v-if="group.count > 1" style="color: #7d8e9e;">{{ group.count }}</small>
+                </span>
+
                 <small
-                  class="text-muted"
-                  style="cursor: pointer"
+                  v-if="isCurrentUser(message.memberId)"
+                  class="text-muted d-flex align-items-center gap-1"
+                  style="cursor: pointer; font-size: 0.7rem;"
+                  title="Кто прочитал"
                   @click="readInfoId = readInfoId === message.messageId ? null : message.messageId"
                 >
-                  <i class="bi bi-check2-all me-1"></i>Прочитали: {{ readersOf(message).length }}
+                  <i class="bi bi-check2-all" style="font-size: 0.8rem;"></i>{{ readersOf(message).length }}
                 </small>
               </div>
+
               <div
                 v-if="isCurrentUser(message.memberId) && readInfoId === message.messageId"
-                class="mt-2 p-2 small border rounded bg-body-tertiary"
+                class="p-2 small rounded-3 mt-1"
+                style="background: #17212b; max-width: 100%;"
               >
                 <div v-if="readersOf(message).length === 0" class="text-muted">Ещё никто не прочитал</div>
                 <div v-for="reader in readersOf(message)" :key="reader.memberId" class="text-muted">
@@ -144,21 +137,78 @@
         </div>
       </TransitionGroup>
     </div>
-    <div class="card-footer bg-body-tertiary border-top">
+
+    <div v-if="typingNames.length" class="px-3 py-1 small text-muted border-top" style="background: #17212b;">
+      <i class="bi bi-pencil me-1"></i>{{ typingNames.join(', ') }} {{ typingNames.length > 1 ? 'печатают…' : 'печатает…' }}
+    </div>
+
+    <div v-if="replyTo" class="d-flex align-items-center gap-2 px-3 py-2 border-top" style="background: #17212b;">
+      <i class="bi bi-reply text-primary"></i>
+      <div class="flex-grow-1 min-w-0" style="border-left: 3px solid #6ab3f3; padding-left: 0.5rem;">
+        <div class="small fw-bold" style="color: #6ab3f3;">{{ getMemberName(replyTo.memberId) }}</div>
+        <div class="small text-muted text-truncate">{{ parseSmileys(replyTo.content) }}</div>
+      </div>
+      <button type="button" class="btn-close btn-close-white" @click="replyTo = null"></button>
+    </div>
+
+    <div class="card-footer border-top" style="background: #17212b;">
       <div class="input-group">
         <input
+          ref="messageInput"
           v-model="newMessage"
           type="text"
-          class="form-control"
+          class="form-control border-0"
+          style="background: #232e3c;"
           placeholder="Введите сообщение..."
           @keyup.enter="sendMessage"
+          @input="onInputTyping"
         />
-        <button @click="sendMessage" :disabled="!newMessage.trim()" class="btn btn-primary d-flex align-items-center gap-1">
+        <button @click="sendMessage" :disabled="!newMessage.trim()" class="btn btn-primary d-flex align-items-center">
           <i class="bi bi-send-fill"></i>
-          Отправить
         </button>
       </div>
     </div>
+
+    <Teleport to="body">
+      <div
+        v-if="menuMessage"
+        class="position-fixed top-0 start-0 w-100 h-100"
+        style="z-index: 1040;"
+        @click="closeMessageMenu"
+        @contextmenu.prevent="closeMessageMenu"
+      ></div>
+
+      <div
+        v-if="menuMessage"
+        class="card shadow-lg rounded-3 p-2"
+        style="position: fixed; z-index: 1050; width: min(260px, calc(100vw - 24px)); background: #17212b;"
+        :style="{ top: menuY + 'px', left: menuX + 'px' }"
+      >
+        <div class="d-flex flex-wrap gap-1 mb-1">
+          <button
+            v-for="emoji in REACTION_EMOJIS"
+            :key="emoji"
+            class="btn btn-sm border-0 py-1 px-2"
+            style="background: transparent;"
+            @click="sendReaction(menuMessage, emoji); closeMessageMenu()"
+          >{{ emoji }}</button>
+        </div>
+        <template v-if="menuMessage">
+          <hr class="my-1" style="border-color: #2f3d4d;">
+          <button class="dropdown-item rounded-2 small d-flex align-items-center gap-2" @click="startReply(menuMessage); closeMessageMenu()">
+            <i class="bi bi-reply"></i> Ответить
+          </button>
+        </template>
+        <template v-if="menuMessage && isCurrentUser(menuMessage.memberId)">
+          <button class="dropdown-item rounded-2 small d-flex align-items-center gap-2" @click="startEdit(menuMessage); closeMessageMenu()">
+            <i class="bi bi-pencil"></i> Редактировать
+          </button>
+          <button class="dropdown-item rounded-2 small d-flex align-items-center gap-2 text-danger" @click="deletingMessageId = menuMessage!.messageId; closeMessageMenu()">
+            <i class="bi bi-trash"></i> Удалить
+          </button>
+        </template>
+      </div>
+    </Teleport>
   </div>
 </template>
 
@@ -199,7 +249,11 @@ const SMILEYS: Record<string, string> = {
   ':-O': '😮',
   ':O': '😮',
   ':*': '😘',
-  '<3': '❤️'
+  '<3': '❤️',
+  '=)': '😃',
+  ';(': '😢',
+  'xD': '😆',
+  'XD': '😆'
 }
 const SMILEY_KEYS = Object.keys(SMILEYS).sort((a, b) => b.length - a.length)
 
@@ -221,8 +275,14 @@ const chatBody = ref<HTMLElement>()
 const editingMessageId = ref<string | null>(null)
 const editMessageText = ref('')
 const deletingMessageId = ref<string | null>(null)
-const reactionPickerId = ref<string | null>(null)
 const readInfoId = ref<string | null>(null)
+const replyTo = ref<MessageDto | null>(null)
+const messageInput = ref<HTMLInputElement>()
+
+const menuMessage = ref<MessageDto | null>(null)
+const menuX = ref(0)
+const menuY = ref(0)
+let longPressTimer: any = null
 
 let subscription: any = null
 let connectedFamilyId: string | null = null
@@ -294,6 +354,24 @@ const getMemberName = (memberId: string) => {
   return `${firstName} ${lastName}`
 }
 
+const memberInitials = (memberId: string) => {
+  const memberInfo = familyStore.membersInfo[memberId]
+  if (!memberInfo) return '?'
+  const first = memberInfo.firstname?.[0] || ''
+  const last = memberInfo.lastname?.[0] || ''
+  return (first + last).toUpperCase() || '?'
+}
+
+const isFirstOfGroup = (message: MessageDto, index: number) => {
+  const previous = messages.value[index - 1]
+  return !previous || previous.memberId !== message.memberId
+}
+
+const isLastOfGroup = (message: MessageDto, index: number) => {
+  const next = messages.value[index + 1]
+  return !next || next.memberId !== message.memberId
+}
+
 const isEdited = (message: MessageDto) => {
   if (!message.updatedAt || !message.sentAt) return false
   const updated = new Date(message.updatedAt).getTime()
@@ -319,6 +397,110 @@ const groupedReactions = (message: MessageDto) => {
   return [...groups.values()]
 }
 
+const messageById = computed(() => {
+  const map = new Map<string, MessageDto>()
+  for (const m of messages.value) map.set(m.messageId, m)
+  return map
+})
+
+const replyTarget = (message: MessageDto): MessageDto | null => {
+  if (!message.replyToId) return null
+  const loaded = messageById.value.get(message.replyToId)
+  if (loaded) return loaded
+  if (message.replyPreview) {
+    return {
+      messageId: message.replyToId,
+      memberId: message.replyPreview.memberId,
+      content: message.replyPreview.content,
+      replyToId: null,
+      reactions: null,
+      reads: null,
+      sentAt: '',
+      updatedAt: ''
+    }
+  }
+  return null
+}
+
+const scrollToMessage = (messageId: string) => {
+  const el = chatBody.value?.querySelector(`[data-mid="${messageId}"]`)
+  el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+}
+
+const typingIds = ref<string[]>([])
+const typingTimers: Record<string, any> = {}
+
+const handleTyping = (memberId: string) => {
+  if (isCurrentUser(memberId)) return
+  if (!typingIds.value.includes(memberId)) {
+    typingIds.value = [...typingIds.value, memberId]
+  }
+  if (typingTimers[memberId]) clearTimeout(typingTimers[memberId])
+  typingTimers[memberId] = setTimeout(() => {
+    typingIds.value = typingIds.value.filter(id => id !== memberId)
+    delete typingTimers[memberId]
+  }, 4000)
+}
+
+const typingNames = computed(() => typingIds.value.map(id => getMemberName(id)))
+
+const clearTyping = () => {
+  Object.keys(typingTimers).forEach(id => {
+    clearTimeout(typingTimers[id])
+    delete typingTimers[id]
+  })
+  typingIds.value = []
+}
+
+let lastTypingSent = 0
+
+const onInputTyping = () => {
+  const now = Date.now()
+  if (!activeFamilyTab.value || now - lastTypingSent < 2500) return
+  lastTypingSent = now
+  rsocketService.fireAndForget('api.family.chat.typing', { familyId: activeFamilyTab.value }).catch(() => {})
+}
+
+const startReply = (message: MessageDto) => {
+  replyTo.value = message
+  nextTick(() => messageInput.value?.focus())
+}
+
+const openMessageMenuAt = (clientX: number, clientY: number, message: MessageDto) => {
+  const width = 260
+  const height = 170
+  menuX.value = Math.max(8, Math.min(clientX, window.innerWidth - width - 8))
+  menuY.value = Math.max(8, Math.min(clientY, window.innerHeight - height - 8))
+  menuMessage.value = message
+}
+
+const openMessageMenu = (event: MouseEvent, message: MessageDto) => {
+  openMessageMenuAt(event.clientX, event.clientY, message)
+}
+
+const startLongPress = (event: TouchEvent, message: MessageDto) => {
+  const touch = event.touches[0]
+  if (!touch) return
+  const x = touch.clientX
+  const y = touch.clientY
+  cancelLongPress()
+  longPressTimer = setTimeout(() => {
+    openMessageMenuAt(x, y, message)
+  }, 500)
+}
+
+const cancelLongPress = () => {
+  if (longPressTimer) {
+    clearTimeout(longPressTimer)
+    longPressTimer = null
+  }
+}
+
+const closeMessageMenu = () => {
+  menuMessage.value = null
+  cancelLongPress()
+}
+
 const startEdit = (message: MessageDto) => {
   editingMessageId.value = message.messageId
   editMessageText.value = message.content
@@ -327,11 +509,6 @@ const startEdit = (message: MessageDto) => {
 const cancelEdit = () => {
   editingMessageId.value = null
   editMessageText.value = ''
-}
-
-const toggleReactionPicker = (message: MessageDto) => {
-  reactionPickerId.value = reactionPickerId.value === message.messageId ? null : message.messageId
-  readInfoId.value = null
 }
 
 const saveEditMessage = async (messageId: string) => {
@@ -345,7 +522,6 @@ const saveEditMessage = async (messageId: string) => {
     }
     await rsocketService.fireAndForget('api.family.chat.edit', request)
     cancelEdit()
-    scrollToBottom()
   } catch (error) {
     console.error('Ошибка редактирования сообщения:', error)
   }
@@ -375,10 +551,11 @@ const sendMessage = async () => {
     const request: CreateMessageRequest = {
       content: newMessage.value.trim(),
       familyId: activeFamilyTab.value,
-      replyToId: null
+      replyToId: replyTo.value?.messageId ?? null
     }
     await rsocketService.fireAndForget('api.family.chat.send', request)
     newMessage.value = ''
+    replyTo.value = null
     scrollToBottom()
   } catch (error) {
     console.error('Ошибка отправки сообщения:', error)
@@ -386,7 +563,6 @@ const sendMessage = async () => {
 }
 
 const sendReaction = async (message: MessageDto, reaction: string) => {
-  reactionPickerId.value = null
   if (!activeFamilyTab.value) return
 
   try {
@@ -556,14 +732,21 @@ const connectToChatStream = () => {
             memberId: response.memberId,
             messageId: response.messageId,
             content: response.content,
-            replyToId: null,
+            replyToId: response.replyTo?.messageId ?? response.replyToId ?? null,
             reactions: response.reactions,
             reads: response.reads,
             sentAt: response.sentAt,
             updatedAt: response.updatedAt
           }
+          if (response.replyTo) {
+            incoming.replyPreview = {
+              memberId: response.replyTo.memberId,
+              content: response.replyTo.content
+            }
+          }
           familyStore.addMessage(response.familyId, incoming)
           markMessagesAsRead([incoming])
+          typingIds.value = typingIds.value.filter(id => id !== response.memberId)
           scrollToBottom()
         } else if (response.operationType === ChatOperationType.EDIT_MESSAGE) {
           familyStore.updateMessage(response.familyId, response.messageId, response.content)
@@ -577,6 +760,8 @@ const connectToChatStream = () => {
           if (response.reads) {
             familyStore.setReads(response.familyId, response.messageId, response.reads)
           }
+        } else if (response.operationType === ChatOperationType.TYPING) {
+          handleTyping(response.memberId)
         }
       },
       error: (error: any) => {
@@ -639,8 +824,10 @@ const showDaySeparator = (message: MessageDto, index: number) => {
 }
 
 watch(activeFamilyTab, async (newTab) => {
-  reactionPickerId.value = null
   readInfoId.value = null
+  replyTo.value = null
+  clearTyping()
+  closeMessageMenu()
   if (newTab) {
     await loadChatHistory()
     connectToChatStream()
@@ -673,5 +860,7 @@ onDeactivated(() => {
 
 onUnmounted(() => {
   disconnectFromChatStream()
+  cancelLongPress()
+  clearTyping()
 })
 </script>

@@ -18,32 +18,19 @@
       </div>
 
       <div class="d-flex justify-content-between align-items-center gap-2 flex-wrap">
-        <div class="d-flex align-items-center gap-1 small min-w-0">
-          <span
-            :class="canCheckTask ? 'text-warning' : 'text-muted'"
-            :style="canCheckTask ? 'cursor: pointer' : ''"
-            :title="canCheckTask ? (task.value.isChecked ? 'Снять проверку' : 'Проверить задачу') : 'Автор'"
-            @click="canCheckTask && $emit('check-task', task, !task.value.isChecked)"
-          >
-            <i :class="task.value.isChecked ? 'bi bi-person-fill-check' : 'bi bi-person'"></i>
+        <div class="d-flex align-items-center gap-1 small text-muted min-w-0">
+          <span class="text-truncate" :title="'Автор: ' + personName(task.value.createdBy)">
+            <i class="bi bi-person"></i>
             {{ personName(task.value.createdBy) }}
           </span>
-          <i class="bi bi-arrow-right-short text-muted"></i>
-          <span
-            :class="[
-              canMarkTask && !task.value.isChecked ? 'text-warning' : 'text-muted',
-              { 'text-decoration-line-through': task.value.isChecked }
-            ]"
-            :style="canMarkTask && !task.value.isChecked ? 'cursor: pointer' : ''"
-            :title="canMarkTask && !task.value.isChecked ? 'Отметить выполненной' : 'Исполнитель'"
-            @click="canMarkTask && !task.value.isChecked && $emit('mark-task', task, !task.value.isMarked)"
-          >
+          <i class="bi bi-arrow-right-short flex-shrink-0"></i>
+          <span class="text-truncate" :title="'Исполнитель: ' + personName(task.value.issuedTo)">
             <i :class="task.value.isMarked ? 'bi bi-person-fill-check' : 'bi bi-person-check'"></i>
             {{ personName(task.value.issuedTo) }}
           </span>
         </div>
 
-        <div class="d-flex align-items-center gap-2 flex-shrink-0">
+        <div class="d-flex align-items-center gap-1 flex-shrink-0">
           <small
             :class="isOverdue ? 'text-danger' : 'text-muted'"
             class="d-flex align-items-center gap-1"
@@ -52,6 +39,22 @@
             <ClockIcon :size="12" />
             {{ formatDate(task.value.dueDate) }}
           </small>
+          <button
+            v-if="canMarkTask && !task.value.isChecked"
+            @click="$emit('mark-task', task, !task.value.isMarked)"
+            :class="['btn btn-sm py-0 px-2', task.value.isMarked ? 'btn-primary' : 'btn-outline-primary']"
+            :title="task.value.isMarked ? 'Снять отметку выполнения' : 'Отметить выполненной'"
+          >
+            <i class="bi bi-check2-circle me-1"></i>{{ task.value.isMarked ? 'Отменить' : 'Выполнено' }}
+          </button>
+          <button
+            v-if="canCheckTask"
+            @click="$emit('check-task', task, !task.value.isChecked)"
+            :class="['btn btn-sm py-0 px-2', task.value.isChecked ? 'btn-success' : 'btn-outline-success']"
+            :title="task.value.isChecked ? 'Снять проверку' : 'Проверить задачу'"
+          >
+            <i class="bi bi-check2-all me-1"></i>{{ task.value.isChecked ? 'Снять проверку' : 'Проверить' }}
+          </button>
           <button @click="$emit('edit-task', task)" class="btn btn-outline-secondary btn-sm py-0 px-1" title="Редактировать">
             <EditIcon :size="12" />
           </button>
